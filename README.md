@@ -23,6 +23,7 @@ sudo python abysscrypt.py
 ```
 
 root is required for dm-crypt, cipher enumeration and invocations.
+in general [cipher]-xts-plain64 is a good option for each level.
 
 ## 📝 Description
 
@@ -66,3 +67,8 @@ For optimal security:
 - Strategic placement of complex passwords at certain levels provides excellent security
 - Mix different ciphers across levels to protect against algorithm-specific vulnerabilities
 - Each level multiplies the work required to break the encryption
+
+### known issues
+
+some combinations of ciphers. keys, hashes may not work when running the script, if so, either edit that level, or go back and try again.
+in general [cipher]-xts-plain64 is a good option
