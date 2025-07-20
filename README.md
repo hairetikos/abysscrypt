@@ -21,6 +21,14 @@
 
 install dependencies (`python3`, `qt5`)
 
+Debian/Ubuntu/Mint  `# apt install python3 python3-qtpy-pyqt5`
+
+Fedora/RHEL/CentOS  `# dnf install python3 python3-qt5`
+
+Arch Linux/Manjaro  `# pacman -S python python-pyqt5`
+
+openSUSE  `# zypper install python3 python3-qt5`
+
 ```bash
 git clone https://github.com/hairetikos/abysscrypt
 cd abysscrypt
