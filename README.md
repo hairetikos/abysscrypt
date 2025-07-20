@@ -44,17 +44,11 @@ in general `[cipher]-xts-plain64` is a good option for each level.
 
 ## to make the data appear random/wipe the volume before usage:
 
-umount the final stage, then target the last cypt directly with dd, for example with the image above:
+make a simple 1 or 2 level plain dm-crypt on the target first (do not use LUKS), do not mount it (or, unmount it first) then invoke:
 
-`dd if=/dev/zero of=/dev/mapper/abysscrypt_7`
+`dd if=/dev/zero of=/dev/mapper/crypt`
 
-the zeroes we be garbled over 7 types of ciphers and fill the device like random data, then you can create a filesystem on it again:
-
-`mkfs.ext4 -m 0 /dev/mapper/abysscrypt_7`
-
-and then mount and use it:
-
-`mount /dev/mapper/abysscrypt_7 /mnt/abyss`
+the zeroes we be garbled via encryption and fill the device like random data. this is faster than using `/dev/urandom` to fill it with random data.
 
 ## 📝 Description
 
