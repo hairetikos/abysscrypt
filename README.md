@@ -14,7 +14,7 @@
 
 ## 🚀 Installation & usage
 
-install dependencies (python3, qt5)
+install dependencies (`python3`, `qt5`)
 
 ```bash
 git clone https://github.com/hairetikosp/abysscrypt.git
