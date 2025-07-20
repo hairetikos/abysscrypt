@@ -2,6 +2,11 @@
 
 **AbyssCrypt** is a powerful multi-level dm-crypt encryption solution with a user-friendly GUI wizard.  Create up to 108 levels of encryption on a single device or file container
 
+![image1](https://github.com/hairetikos/abysscrypt/blob/main/abyss1.png)
+
+![image2](https://github.com/hairetikos/abysscrypt/blob/main/abysslevels.png)
+
+
 ## 🔐 Features
 
 - **Deep Encryption**: Create up to 108 nested encryption levels
@@ -30,9 +35,9 @@ in general [cipher]-xts-plain64 is a good option for each level.
 
 AbyssCrypt provides a Qt-based wizard interface for creating nested dm-crypt volumes with multiple encryption levels. Each level can have completely different encryption settings, making it extremely difficult to break through all layers of security. The application generates ready-to-use shell scripts for mounting and unmounting your encrypted volumes.
 
-The script may be discarded after first use, but only if you are confident that you can remember passphrases for each level, along with their ciphers, key sizes, and hashes!
+**The script may be discarded after first use, but only if you are confident that you can remember passphrases for each level, along with their ciphers, key sizes, and hashes!**
 
-this is not LUKS, there is NO metadata... either remember everything with mnemonic techniques, or keep the script safe.
+**this is not LUKS, there is NO metadata... either remember everything with mnemonic techniques, or keep the script safe.**
 
 ## ⚙️ Plain dm-crypt vs LUKS
 
