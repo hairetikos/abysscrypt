@@ -32,7 +32,7 @@ openSUSE  `# zypper install python3 python3-qt5`
 ```bash
 git clone https://github.com/hairetikos/abysscrypt
 cd abysscrypt
-sudo python abysscrypt.py
+sudo python3 abysscrypt.py
 ```
 to use the generated mount script:
 
