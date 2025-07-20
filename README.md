@@ -34,6 +34,9 @@ git clone https://github.com/hairetikos/abysscrypt
 cd abysscrypt
 sudo python abysscrypt.py
 ```
+to use the generated mount script:
+
+`bash mount_script.sh /path/to/mountpoint`
 
 root is required for dm-crypt, cipher enumeration and invocations.
 
