@@ -40,6 +40,8 @@ to use the generated mount script:
 
 root is required for dm-crypt, cipher enumeration and invocations.
 
+in general `[cipher]-xts-plain64` is a good option for each level.
+
 ## to make the data appear random/wipe the volume before usage:
 
 umount the final stage, then target the last cypt directly with dd, for example with the image above:
@@ -53,8 +55,6 @@ the zeroes we be garbled over 7 types of ciphers and fill the device like random
 and then mount and use it:
 
 `mount /dev/mapper/abysscrypt_7 /mnt/abyss`
-
-in general [cipher]-xts-plain64 is a good option for each level.
 
 ## 📝 Description
 
