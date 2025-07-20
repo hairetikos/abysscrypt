@@ -1,6 +1,6 @@
 # AbyssCrypt
 
-**AbyssCrypt** is a powerful multi-level dm-crypt encryption solution with a user-friendly GUI wizard.  Create up to 108 levels of encryption on a single device or file container
+**AbyssCrypt** is a powerful multi-level dm-crypt encryption solution with a user-friendly GUI wizard.  Create up to 108 levels of encryption on a single device or file container each with their own cipher, keysize, and hash algorithm.
 
 ![image1](https://github.com/hairetikos/abysscrypt/blob/main/abyss1.png)
 
