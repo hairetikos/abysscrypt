@@ -12,6 +12,18 @@
 - **Container Support**: Works with both file containers and block devices
 - **Script Generation**: Automatically generates mount/unmount scripts
 
+## 🚀 Installation & usage
+
+install dependencies (python3, qt5)
+
+```bash
+git clone https://github.com/hairetikosp/abysscrypt.git
+cd abysscrypt
+sudo python abysscrypt.py
+```
+
+root is required for dm-crypt, cipher enumeration and invocations.
+
 ## 📝 Description
 
 AbyssCrypt provides a Qt-based wizard interface for creating nested dm-crypt volumes with multiple encryption levels. Each level can have completely different encryption settings, making it extremely difficult to break through all layers of security. The application generates ready-to-use shell scripts for mounting and unmounting your encrypted volumes.
@@ -54,16 +66,3 @@ For optimal security:
 - Strategic placement of complex passwords at certain levels provides excellent security
 - Mix different ciphers across levels to protect against algorithm-specific vulnerabilities
 - Each level multiplies the work required to break the encryption
-
-## 🚀 Installation
-
-install dependencies (python3, qt5)
-
-```bash
-git clone https://github.com/hairetikosp/abysscrypt.git
-cd abysscrypt
-pip install -r requirements.txt
-sudo python abysscrypt.py
-```
-
-root is required for dm-crypt, cipher enumeration and invocations.
