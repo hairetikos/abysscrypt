@@ -4,7 +4,7 @@
 
 ![image1](https://github.com/hairetikos/abysscrypt/blob/main/abyss1.png)
 
-![image2](https://github.com/hairetikos/abysscrypt/blob/main/abysslevels.png)
+![image2](https://github.com/hairetikos/abysscrypt/blob/main/abysslevels2.png)
 
 
 ## 🔐 Features
@@ -39,6 +39,20 @@ to use the generated mount script:
 `bash mount_script.sh /path/to/mountpoint`
 
 root is required for dm-crypt, cipher enumeration and invocations.
+
+## to make the data appear random/wipe the volume before usage:
+
+umount the final stage, then target the last cypt directly with dd, for example with the image above:
+
+`dd if=/dev/zero of=/dev/mapper/abysscrypt_7`
+
+the zeroes we be garbled over 7 types of ciphers and fill the device like random data, then you can create a filesystem on it again:
+
+`mkfs.ext4 -m 0 /dev/mapper/abysscrypt_7`
+
+and then mount and use it:
+
+`mount /dev/mapper/abysscrypt_7 /mnt/abyss`
 
 in general [cipher]-xts-plain64 is a good option for each level.
 
