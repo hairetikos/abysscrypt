@@ -17,7 +17,7 @@
 install dependencies (`python3`, `qt5`)
 
 ```bash
-git clone https://github.com/hairetikosp/abysscrypt.git
+git clone https://github.com/hairetikos/abysscrypt
 cd abysscrypt
 sudo python abysscrypt.py
 ```
