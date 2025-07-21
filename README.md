@@ -60,7 +60,7 @@ the zeroes we be garbled via encryption and fill the device like random data. th
 
 here is the base partition, without encryption at /dev/vdb1
 
-exfat filesystem is used because of less metadata that may be corrupted by the hidden crypt container (fat32 can also be used)
+exfat filesystem is used because of less metadata that may be corrupted by the hidden crypt container (fat32 can also be used).  Other filesystems may be used, but if they have more metadata and journaling, then more careful meticulous planning of the offset needs to be done, and corruption is more likely.  exfat is also already common for USB sticks...
 
 <img src="https://github.com/hairetikos/abysscrypt/blob/main/ss/hellounderworld.png" width=480>
 
