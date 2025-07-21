@@ -151,7 +151,7 @@ class LevelConfigPage(QWizardPage):
         offset_input_layout = QHBoxLayout()
         offset_input_layout.addWidget(QLabel("Offset (sectors):"))
         self.offset_spin = QSpinBox()
-        self.offset_spin.setRange(0, 1000000000)  # Large range
+        self.offset_spin.setRange(0, 2147483647)  # Large range
         self.offset_spin.setValue(0)  # Default no offset
         offset_input_layout.addWidget(self.offset_spin)
         offset_layout.addLayout(offset_input_layout)
@@ -194,21 +194,6 @@ class LevelConfigPage(QWizardPage):
         if keyfile:
             self.keyfile_path.setText(keyfile)
             
-    def initializePage(self):
-        """Called when the page is about to be shown"""
-        # For level > 1, set the minimum offset to the previous level's offset
-        if self.level_num > 1:
-            try:
-                prev_level_offset = self.wizard.field(f"level{self.level_num-1}_offset")
-                if prev_level_offset is not None:
-                    self.offset_spin.setMinimum(prev_level_offset)
-                    # If current value is less than previous level's offset, update it
-                    if self.offset_spin.value() < prev_level_offset:
-                        self.offset_spin.setValue(prev_level_offset)
-            except Exception as e:
-                print(f"Error setting minimum offset: {e}")
-
-
 class SummaryPage(QWizardPage):
     def __init__(self):
         super().__init__()
