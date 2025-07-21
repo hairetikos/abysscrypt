@@ -1,13 +1,17 @@
 # AbyssCrypt
 
-**AbyssCrypt** is a powerful multi-level dm-crypt encryption solution with a user-friendly GUI wizard.  Create up to 108 levels of encryption on a single device or file container each with their own cipher, keysize, and hash algorithm.
+**AbyssCrypt** is a powerful multi-level dm-crypt encryption solution with a user-friendly GUI wizard.  Create up to 108 levels of encryption on a single device or file container each with their own cipher, keysize, hash algorithm, and password/keyfile.
 
-![image1](https://github.com/hairetikos/abysscrypt/blob/main/abyss1.png)
+You don't need complex passwords for every level.  Strategic placement of complex passwords at certain levels provides excellent security.  Mix different ciphers across levels to protect against algorithm-specific vulnerabilities.  Each level multiplies the work required to break the encryption.
 
-![image2](https://github.com/hairetikos/abysscrypt/blob/main/abysslevels2.png)
+Sector offsets can be configured for hidden containers.
+
+<img src="https://github.com/hairetikos/abysscrypt/blob/main/ss/abyss1.png" width=480>
+<img src="https://github.com/hairetikos/abysscrypt/blob/main/ss/abyss2.png" width=480>
+<img src="https://github.com/hairetikos/abysscrypt/blob/main/ss/abysslevels2.png" width=480>
 
 
-## 🔐 Features
+## Features
 
 - **Deep Encryption**: Create up to 108 nested encryption levels
 - **Maximum Flexibility**: Customize cipher, key size, and hash algorithm for each level
@@ -17,7 +21,7 @@
 - **Container Support**: Works with both file containers and block devices
 - **Script Generation**: Automatically generates mount/unmount scripts
 
-## 🚀 Installation & usage
+## Installation & usage
 
 install dependencies (`python3`, `qt5`)
 
@@ -44,13 +48,31 @@ in general `[cipher]-xts-plain64` is a good option for each level.
 
 ## to make the data appear random/wipe the volume before usage:
 
-make a simple 1 or 2 level plain dm-crypt on the target first (do not use LUKS), do not mount it (or, unmount it first) then invoke:
+make a simple 1 or 2 level plain dm-crypt on the target first (do not use LUKS), choose aes-xts-plain64 for good speed and security, choose a strong hashing algorithm such as sha512, spam your keyboard when providing the password, do not mount it (or, unmount it first), then invoke:
 
 `dd if=/dev/zero of=/dev/mapper/crypt`
 
-the zeroes we be garbled via encryption and fill the device like random data. this is faster than using `/dev/urandom` to fill it with random data.
+the zeroes we be garbled via encryption and fill the device like random data. this is much faster than using `/dev/urandom` to fill it with random data.
 
-## 📝 Description
+## Example of Hidden Crypts using Offsets
+
+<img src="https://github.com/hairetikos/abysscrypt/blob/main/ss/helloworld.png" width=480>
+
+here is the base partition, without encryption at /dev/vdb1
+
+exfat filesystem is used because of less metadata that may be corrupted by the hidden crypt container (fat32 can also be used)
+
+<img src="https://github.com/hairetikos/abysscrypt/blob/main/ss/hellounderworld.png" width=480>
+
+we then have a hidden crypt "underworld" inside this volume at an offset of 6018 sectors, again using exfat.
+
+<img src="https://github.com/hairetikos/abysscrypt/blob/main/ss/helloabyss.png" width=480>
+
+then, even further down, at the 5th level, we have ANOTHER hidden crypt "abyss" within the volume at a further of 6018 sectors from the first hidden volume, again using exfat
+
+we can have many levels and configurations!
+
+## Description
 
 AbyssCrypt provides a Qt-based wizard interface for creating nested dm-crypt volumes with multiple encryption levels. Each level can have completely different encryption settings, making it extremely difficult to break through all layers of security. The application generates ready-to-use shell scripts for mounting and unmounting your encrypted volumes.
 
@@ -58,7 +80,7 @@ AbyssCrypt provides a Qt-based wizard interface for creating nested dm-crypt vol
 
 **this is not LUKS, there is NO metadata... either remember everything with mnemonic techniques, or keep the script safe.**
 
-## ⚙️ Plain dm-crypt vs LUKS
+## Plain dm-crypt vs LUKS
 
 AbyssCrypt uses plain dm-crypt mode (not LUKS) for several important security advantages:
 
