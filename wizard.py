@@ -188,6 +188,8 @@ class LevelConfigPage(QWizardPage):
         use_passphrase = self.passphrase_check.isChecked()
         self.keyfile_path.setEnabled(not use_passphrase)
         self.keyfile_browse.setEnabled(not use_passphrase)
+        # Disable hash selection when using keyfile (keyfiles don't use hashes)
+        self.hash_combo.setEnabled(use_passphrase)
     
     def browse_keyfile(self):
         keyfile, _ = QFileDialog.getOpenFileName(self, "Select Key File", "", "All Files (*)")
