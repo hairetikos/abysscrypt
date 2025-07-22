@@ -55,6 +55,12 @@ if you are unmounting and mounting the device manually, the `noatime` option is 
 
 `sudo mount -o noatime [...]`
 
+if you are making an `ext4` filesystem manually, it can be optimal to use the following options:
+
+`mkfs.ext4 -O ^has_journal,^metadata_csum,^resize_inode -m 0 [...]` 
+
+this will disable the journal, disable metadata checksum (dm-crypt already does its own integrity checking), and disable online resizing.
+
 ## to make the data appear random/wipe the volume before usage:
 
 make a simple 1 or 2 level plain dm-crypt on the target first (do not use LUKS), choose aes-xts-plain64 for good speed and security, choose a strong hashing algorithm such as sha512, spam your keyboard when providing the password, do not mount it (or, unmount it first), then invoke:
