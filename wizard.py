@@ -16,13 +16,13 @@ from script_generator import ScriptGenerator
 class IntroPage(QWizardPage):
     def __init__(self):
         super().__init__()
-        self.setTitle("Welcome to AbyssCrypt")
+        self.setTitle("welcome to abysscrypt")
         self.setSubTitle("This wizard will guide you through creating a multi-level dm-crypt encryption solution.")
         
         layout = QVBoxLayout()
         
         intro_text = QLabel(
-            "AbyssCrypt allows you to create nested dm-crypt volumes with different "
+            "abysscrypt allows you to create nested dm-crypt volumes with different "
             "encryption settings at each level.\n\n"
             "Features:\n"
             "• Plain dm-crypt (no LUKS)\n"
@@ -365,7 +365,7 @@ class AbyssCryptWizard(QWizard):
     def __init__(self):
         super().__init__()
         
-        self.setWindowTitle("AbyssCrypt Wizard")
+        self.setWindowTitle("abysscrypt wizard")
         self.setMinimumSize(QSize(700, 600))  # Made taller to fit the script display
         
         # Set wizard style

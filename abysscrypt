@@ -7,7 +7,7 @@ from wizard import AbyssCryptWizard
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    app.setApplicationName("AbyssCrypt")
+    app.setApplicationName("abysscrypt")
     app.setStyle("Fusion")
     
     wizard = AbyssCryptWizard()
