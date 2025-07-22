@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# abyscrypt version 0.618
+# https://github.com/hairetikos/abysscrypt
+
 import sys
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt

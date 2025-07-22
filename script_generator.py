@@ -76,7 +76,6 @@ class ScriptGenerator:
         for i, level in enumerate(self.levels):
             level_num = level.level_num
             mapper_name = f"{self.mapper_prefix}_{level_num}"
-            
             script.append(f"\n# Level {level_num} encryption setup")
             
             # For level 1, source is the container provided at runtime
@@ -94,11 +93,8 @@ class ScriptGenerator:
             
             # Auth method
             if level.use_passphrase:
-                script.append(f"echo 'Enter passphrase for Level {level_num}:'")
-                auth_method = "--key-file=-"
-                script.append("read -s PASSPHRASE")
-                script.append(f"echo \"$PASSPHRASE\" | cryptsetup open {source} {mapper_name} --type plain --cipher {level.cipher} --key-size {level.key_size} --hash {level.hash_type} {auth_method}")
-                script.append("unset PASSPHRASE")
+                script.append(f"echo 'Level {level_num}:'")
+                script.append(f"cryptsetup open {source} {mapper_name} --type plain --cipher {level.cipher} --key-size {level.key_size} --hash {level.hash_type}")
             else:
                 auth_method = f"--key-file=\"{level.keyfile_path}\""
                 script.append(f"cryptsetup open {source} {mapper_name} --type plain --cipher {level.cipher} --key-size {level.key_size} {auth_method}")
@@ -116,18 +112,24 @@ class ScriptGenerator:
         script.append("    read -r CREATE_FS")
         script.append("    if [[ \"$CREATE_FS\" =~ ^[Yy] ]]; then")
         script.append(f"        echo 'Creating ext4 filesystem on {final_mapper}...'")
-        script.append(f"        mkfs.ext4 -m 0 {final_mapper}")
-        script.append("        echo 'Filesystem created.'")
+        script.append(f"        mkfs.ext4 -O ^has_journal,^metadata_csum,^resize_inode -m 0 {final_mapper}")
+        script.append("        echo 'ext4 filesystem created with 0% reserved area.  disabled features: journal, metadata_cheksum, resize_inode'")
+        script.append("        # Mount the final encrypted volume")
+        script.append(f"        mount -o noatime {final_mapper} \"$MOUNT_POINT\"")
+        script.append("        echo 'Multi-level encryption setup complete!'")
+        script.append(f"        echo \"Mounted at $MOUNT_POINT\"")
         script.append("    else")
-        script.append("        echo 'Warning: No filesystem present. Mount may fail.'")
+        script.append("        echo 'No filesystem created. Encrypted device is ready but not mounted.'")
+        script.append("        echo 'You can manually create a filesystem later and mount it.'")
+        script.append("        echo 'Multi-level encryption setup complete!'")
         script.append("    fi")
+        script.append("else")
+        script.append("    # Filesystem exists, mount it")
+        script.append("    echo 'Existing filesystem detected. Mounting...'")
+        script.append(f"    mount -o noatime {final_mapper} \"$MOUNT_POINT\"")
+        script.append("    echo 'Multi-level encryption setup complete!'")
+        script.append(f"    echo \"Mounted at $MOUNT_POINT\"")
         script.append("fi")
-        
-        # Final mount command
-        script.append("\n# Mount the final encrypted volume")
-        script.append(f"mount {final_mapper} \"$MOUNT_POINT\"")
-        script.append("\necho 'Multi-level encryption setup complete!'")
-        script.append(f"echo \"Mounted at $MOUNT_POINT\"")
 
         return "\n".join(script)
     
