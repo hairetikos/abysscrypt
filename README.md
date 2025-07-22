@@ -51,7 +51,7 @@ root is required for dm-crypt/cryptsetup when running the script
 
 in general `[cipher]-xts-plain64` is a good option for each level.
 
-if you are unmounting and mounting the device manually, the `noatime` option is best to avoid unneccessary filesystem operations, and make it a bit faster:
+if you are unmounting and mounting the device manually, the `noatime` option is best to avoid unnecessary filesystem operations, and make it a bit faster:
 
 `sudo mount -o noatime [...]`
 
