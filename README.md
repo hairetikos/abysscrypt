@@ -59,7 +59,7 @@ if you are making an `ext4` filesystem manually, it can be optimal to use the fo
 
 `mkfs.ext4 -O ^has_journal,^metadata_csum,^resize_inode -m 0 [...]` 
 
-this will disable the journal, disable metadata checksum (dm-crypt already does its own integrity checking), and disable online resizing.
+this will disable reserved blocks/space, disable the journal, metadata checksum (dm-crypt already does its own integrity checking), and online resizing.
 
 ## to make the data appear random/wipe the volume before usage:
 
