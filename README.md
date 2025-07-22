@@ -65,7 +65,13 @@ the zeroes we be garbled via encryption and fill the device like random data. th
 
 here is the base partition, without encryption at /dev/vdb1
 
-exfat filesystem is used because of less metadata that may be corrupted by the hidden crypt container (fat32 can also be used).  Other filesystems may be used, but if they have more metadata and journaling, then more careful meticulous planning of the offset needs to be done, and corruption is more likely.  exfat is also already common for USB sticks...
+`exfat` filesystem is used instead of `ext4` for the unencrypted volume so that it appears as a "regular" volume, for example it can be a USB stick that is also usable by windows, not just linux.
+
+If you are planning to use `ext4` for the unencrypted volume, it is best to disable the reserved space, and also disable the journal, otherwise it may scatter data across the device and corrupt the hidden crypt(s):
+
+`sudo mkfs.ext4 -O ^has_journal -m 0 /dev/sdX`
+
+other filesystems such as `xfs` may be used, but always consider how they work at the low level, and plan the offset of the hidden volume accordingly, and place the regular files on there, and then unmount it, *before* activating and mounting the hidden crypt.
 
 <img src="https://github.com/hairetikos/abysscrypt/blob/main/ss/hellounderworld.png" width=480>
 
