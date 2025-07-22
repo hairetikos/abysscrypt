@@ -67,7 +67,7 @@ here is the base partition, without encryption at /dev/vdb1
 
 `exfat` filesystem is used instead of `ext4` for the unencrypted volume so that it appears as a "regular" volume, for example it can be a USB stick that is also usable by windows, not just linux.
 
-If you are planning to use `ext4` for the unencrypted volume, it is best to disable the reserved space, and also disable the journal, otherwise it may scatter data across the device and corrupt the hidden crypt(s):
+If you are planning to use `ext4` for the unencrypted volume, it is best to disable the reserved space, and also disable the journal, otherwise it may scatter data across the device and corrupt the hidden crypt(s), or the hidden crypts may corrupt the ext4 filesystem:
 
 `sudo mkfs.ext4 -O ^has_journal -m 0 /dev/sdX`
 
