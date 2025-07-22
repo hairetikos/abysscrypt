@@ -2,7 +2,7 @@
 
 **AbyssCrypt** is a powerful multi-level dm-crypt encryption solution with a user-friendly GUI wizard.  Create up to 108 levels of encryption on a single device or file container each with their own cipher, keysize, hash algorithm, and password/keyfile.
 
-You don't need complex passwords for every level.  Strategic placement of complex passwords at certain levels provides excellent security.  Mix different ciphers across levels to protect against algorithm-specific vulnerabilities.  Each level multiplies the work required to break the encryption.
+You don't need complex passwords for every level.  Strategic placement of complex passwords at certain levels provides excellent security.  The passwords are hashed by the chosen hashing algorithm at each level.  Mix different ciphers and hash algorithms across levels to protect against algorithm-specific vulnerabilities.  Each level multiplies the work required to break the encryption.
 
 Sector offsets can be configured for hidden containers.
 
@@ -23,26 +23,28 @@ Sector offsets can be configured for hidden containers.
 
 ## Installation & usage
 
-install dependencies (`python3`, `qt5`)
+install dependencies (`cryptsetup`, `python3`, `qt5`)
 
-Debian/Ubuntu/Mint  `# apt install python3 python3-qtpy-pyqt5`
+Debian/Ubuntu/Mint  `# apt install cryptsetup python3 python3-qtpy-pyqt5 `
 
-Fedora/RHEL/CentOS  `# dnf install python3 python3-qt5`
+Fedora/RHEL/CentOS  `# dnf install cryptsetup python3 python3-qt5`
 
-Arch Linux/Manjaro  `# pacman -S python python-pyqt5`
+Arch Linux/Manjaro  `# pacman -S cryptsetup python python-pyqt5`
 
-openSUSE  `# zypper install python3 python3-qt5`
+openSUSE  `# zypper install cryptsetup python3 python3-qt5`
 
 ```bash
 git clone https://github.com/hairetikos/abysscrypt
 cd abysscrypt
-sudo python3 abysscrypt.py
+python3 abysscrypt.py
 ```
 to use the generated mount script:
 
-`bash mount_script.sh /path/to/mountpoint`
+`# bash mount_script.sh /path/to/mountpoint`
 
-root is required for dm-crypt, cipher enumeration and invocations.
+root is required for dm-crypt/cryptsetup when running the script
+
+`abysscrypt` GUI can be ran in non-root mode to generate the script, but it may not enumerate *all* available hashing algorithms.
 
 in general `[cipher]-xts-plain64` is a good option for each level.
 
