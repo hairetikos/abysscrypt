@@ -1,6 +1,6 @@
-# AbyssCrypt
+# abysscrypt
 
-**AbyssCrypt** is a powerful multi-level dm-crypt encryption solution with a user-friendly GUI wizard.  Create up to 108 levels of encryption on a single device or file container each with their own cipher, keysize, hash algorithm, and password/keyfile.
+`abysscrypt` is a powerful multi-level dm-crypt encryption solution with a user-friendly GUI wizard.  Create up to 108 levels of encryption on a single device or file container each with their own cipher, keysize, hash algorithm, and password/keyfile.
 
 You don't need complex passwords for every level.  Strategic placement of complex passwords at certain levels provides excellent security.  The passwords are hashed by the chosen hashing algorithm at each level.  Mix different ciphers and hash algorithms across levels to protect against algorithm-specific vulnerabilities.  Each level multiplies the work required to break the encryption.
 
@@ -21,26 +21,29 @@ Sector offsets can be configured for hidden containers.
 - **Container Support**: Works with both file containers and block devices
 - **Script Generation**: Automatically generates mount/unmount scripts
 
-## Installation & usage
+## Installation
 
 install dependencies (`cryptsetup`, `python3`, `qt5`)
 
-Debian/Ubuntu/Mint  `# apt install cryptsetup python3 python3-qtpy-pyqt5 `
+Debian/Ubuntu/Mint  `sudo apt install cryptsetup python3 python3-qtpy-pyqt5 `
 
-Fedora/RHEL/CentOS  `# dnf install cryptsetup python3 python3-qt5`
+Fedora/RHEL/CentOS  `sudo dnf install cryptsetup python3 python3-qt5`
 
-Arch Linux/Manjaro  `# pacman -S cryptsetup python python-pyqt5`
+Arch Linux/Manjaro  `sudo pacman -S cryptsetup python python-pyqt5`
 
-openSUSE  `# zypper install cryptsetup python3 python3-qt5`
+openSUSE  `sudo zypper install cryptsetup python3 python3-qt5`
+
+##  Usage
 
 ```bash
 git clone https://github.com/hairetikos/abysscrypt
 cd abysscrypt
-python3 abysscrypt.py
+chmod +x abysscrypt
+./abysscrypt
 ```
 to use the generated mount script:
 
-`# bash mount_script.sh /path/to/mountpoint`
+`sudo bash mount_script.sh /path/to/mountpoint`
 
 root is required for dm-crypt/cryptsetup when running the script
 
@@ -52,7 +55,7 @@ in general `[cipher]-xts-plain64` is a good option for each level.
 
 make a simple 1 or 2 level plain dm-crypt on the target first (do not use LUKS), choose aes-xts-plain64 for good speed and security, choose a strong hashing algorithm such as sha512, spam your keyboard when providing the password, do not mount it (or, unmount it first), then invoke:
 
-`dd if=/dev/zero of=/dev/mapper/crypt`
+`sudo dd if=/dev/zero of=/dev/mapper/crypt`
 
 the zeroes we be garbled via encryption and fill the device like random data. this is much faster than using `/dev/urandom` to fill it with random data.
 
@@ -76,7 +79,7 @@ we can have many levels and configurations!
 
 ## Description
 
-AbyssCrypt provides a Qt-based wizard interface for creating nested dm-crypt volumes with multiple encryption levels. Each level can have completely different encryption settings, making it extremely difficult to break through all layers of security. The application generates ready-to-use shell scripts for mounting and unmounting your encrypted volumes.
+`abysscrypt` provides a Qt-based wizard interface for creating nested dm-crypt volumes with multiple encryption levels. Each level can have completely different encryption settings, making it extremely difficult to break through all layers of security. The application generates ready-to-use shell scripts for mounting and unmounting your encrypted volumes.
 
 **The script may be discarded after first use, but only if you are confident that you can remember passphrases for each level, along with their ciphers, key sizes, and hashes!**
 
@@ -84,7 +87,7 @@ AbyssCrypt provides a Qt-based wizard interface for creating nested dm-crypt vol
 
 ## Plain dm-crypt vs LUKS
 
-AbyssCrypt uses plain dm-crypt mode (not LUKS) for several important security advantages:
+`abysscrypt` uses plain dm-crypt mode (not LUKS) for several important security advantages:
 
 ### How Plain dm-crypt Works
 
