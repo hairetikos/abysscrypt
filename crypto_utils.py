@@ -2,53 +2,30 @@
 
 import subprocess
 import re
-import os
 
 class CryptoUtils:
     @staticmethod
     def get_available_ciphers():
-        """Get all available ciphers from /proc/crypto"""
-        try:
-            with open('/proc/crypto', 'r') as f:
-                content = f.read()
-                
-            ciphers = set()
-            for block in content.split('\n\n'):
-                if 'type' in block and 'name' in block:
-                    # Extract name and type
-                    name_match = re.search(r'name\s*:\s*(\S+)', block)
-                    type_match = re.search(r'type\s*:\s*(\S+)', block)
-                    
-                    if name_match and type_match:
-                        name = name_match.group(1)
-                        type_val = type_match.group(1)
-                        
-                        # Only include block ciphers
-                        if type_val == "cipher":
-                            ciphers.add(name)
-            
-            # Add common ciphers if not found
-            common_ciphers = [
-                "aes-xts-plain64", "aes-cbc-essiv:sha256", "aes-cbc-plain", 
-                "twofish-cbc-plain", "serpent-cbc-plain", "twofish-xts-plain64",
-                "serpent-xts-plain64", "aes-twofish-xts-plain64", 
-                "twofish-serpent-xts-plain64", "aes-twofish-serpent-xts-plain64",
-                "camellia-xts-plain64", "camellia-cbc-essiv:sha256"
-            ]
-            
-            for cipher in common_ciphers:
-                if cipher not in ciphers:
-                    ciphers.add(cipher)
-                    
-            return sorted(list(ciphers))
-        except Exception as e:
-            print(f"Error getting available ciphers: {e}")
-            # Return some common defaults if we can't read /proc/crypto
-            return [
-                "aes-xts-plain64", "aes-cbc-essiv:sha256", 
-                "twofish-xts-plain64", "serpent-xts-plain64",
-                "camellia-xts-plain64", "aes-twofish-serpent-xts-plain64"
-            ]
+        """Get list of known-good dm-crypt cipher strings"""
+        # Return only hardcoded dm-crypt cipher-mode-IV strings
+        # These are all valid for cryptsetup plain mode
+        return [
+            "aes-xts-plain64",
+            "aes-cbc-essiv:sha256",
+            "aes-cbc-plain",
+            "twofish-xts-plain64",
+            "twofish-cbc-plain",
+            "serpent-xts-plain64",
+            "serpent-cbc-plain",
+            "aes-twofish-xts-plain64",
+            "twofish-serpent-xts-plain64",
+            "aes-twofish-serpent-xts-plain64",
+            "camellia-xts-plain64",
+            "camellia-cbc-essiv:sha256",
+            "cast5-cbc-plain",
+            "cast6-xts-plain64",
+            "blowfish-cbc-plain"
+        ]
 
     @staticmethod
     def get_available_key_sizes(cipher):
@@ -131,7 +108,7 @@ class CryptoUtils:
         """Get available hash types"""
         try:
             # Try getting hash types from cryptsetup
-            result = subprocess.run(['cryptsetup', 'benchmarks'], 
+            result = subprocess.run(['cryptsetup', 'benchmark'], 
                                     capture_output=True, text=True)
             output = result.stdout
             
@@ -161,7 +138,7 @@ class CryptoUtils:
                     
                     if hash_types:
                         return sorted(hash_types)
-            except:
+            except Exception:
                 pass
                 
             # Default hash types if we can't extract them
@@ -169,20 +146,3 @@ class CryptoUtils:
         except Exception as e:
             print(f"Error getting available hash types: {e}")
             return ["sha1", "sha256", "sha512", "ripemd160", "whirlpool"]
-    
-    @staticmethod
-    def verify_device(device_path):
-        """Verify if a device exists and is a block device"""
-        return os.path.exists(device_path) and os.path.isblock(device_path)
-    
-    @staticmethod
-    def create_empty_file(file_path, size_mb):
-        """Create an empty file of specified size (in MB)"""
-        try:
-            with open(file_path, 'wb') as f:
-                f.seek(int(size_mb) * 1024 * 1024 - 1)
-                f.write(b'\0')
-            return True
-        except Exception as e:
-            print(f"Error creating empty file: {e}")
-            return False
