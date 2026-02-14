@@ -115,15 +115,14 @@ class ScriptGenerator:
         
         # Check if the device needs formatting and offer to create a filesystem
         script.append("\n# Check if filesystem exists on the final device")
-        script.append(f"blkid {final_mapper} > /dev/null 2>&1 || true")
-        script.append(f"if [ $? -ne 0 ]; then")
+        script.append(f"if ! blkid {final_mapper} > /dev/null 2>&1; then")
         script.append("    echo 'No filesystem detected on the encrypted device.'")
         script.append("    echo 'Would you like to create an ext4 filesystem? (y/n)'")
         script.append("    read -r CREATE_FS")
         script.append("    if [[ \"$CREATE_FS\" =~ ^[Yy] ]]; then")
         script.append(f"        echo 'Creating ext4 filesystem on {final_mapper}...'")
         script.append(f"        mkfs.ext4 -O ^has_journal,^metadata_csum,^resize_inode -m 0 {final_mapper}")
-        script.append("        echo 'ext4 filesystem created with 0% reserved area.  disabled features: journal, metadata_checksum, resize_inode'")
+        script.append("        echo 'ext4 filesystem created with 0% reserved area. disabled features: journal, metadata_checksum, resize_inode'")
         script.append("        # Mount the final encrypted volume")
         script.append(f"        mount -o noatime {final_mapper} \"$MOUNT_POINT\"")
         script.append("        echo 'Multi-level encryption setup complete!'")

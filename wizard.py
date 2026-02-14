@@ -153,7 +153,8 @@ class LevelConfigPage(QWizardPage):
         offset_input_layout.addWidget(QLabel("Offset (sectors):"))
         self.offset_edit = QLineEdit()
         self.offset_edit.setText("0")  # Default no offset
-        # Set validator to accept only non-negative integers (including empty for conversion to 0)
+        # Set validator to accept only non-negative integers
+        # Empty input will be treated as 0 during conversion
         offset_validator = QRegExpValidator(QRegExp("^[0-9]*$"))
         self.offset_edit.setValidator(offset_validator)
         offset_input_layout.addWidget(self.offset_edit)
