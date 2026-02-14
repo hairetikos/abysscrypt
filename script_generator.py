@@ -115,7 +115,8 @@ class ScriptGenerator:
         
         # Check if the device needs formatting and offer to create a filesystem
         script.append("\n# Check if filesystem exists on the final device")
-        script.append(f"if ! blkid {final_mapper} > /dev/null 2>&1 || true; then")
+        script.append(f"blkid {final_mapper} > /dev/null 2>&1 || true")
+        script.append(f"if [ $? -ne 0 ]; then")
         script.append("    echo 'No filesystem detected on the encrypted device.'")
         script.append("    echo 'Would you like to create an ext4 filesystem? (y/n)'")
         script.append("    read -r CREATE_FS")
