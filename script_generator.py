@@ -30,9 +30,9 @@ class ScriptGenerator:
         
         # Mount point validation (moved before container prompt)
         script.append("\n# Define mount point")
-        script.append("MOUNT_POINT=\"$1\"")
+        script.append("MOUNT_POINT=\"${1:-}\"")
         script.append("if [ -z \"$MOUNT_POINT\" ]; then")
-        script.append("    echo 'Usage: please specify <mount_point>'")
+        script.append("    echo 'Usage: <script> <mount_point> (e.g. /mnt/crypt)'")
         script.append("    exit 1")
         script.append("fi")
         script.append("mkdir -p \"$MOUNT_POINT\"")
@@ -160,9 +160,9 @@ class ScriptGenerator:
         
         # Mount point
         script.append("\n# Define mount point")
-        script.append("MOUNT_POINT=\"$1\"")
+        script.append("MOUNT_POINT=\"${1:-}\"")
         script.append("if [ -z \"$MOUNT_POINT\" ]; then")
-        script.append("    echo 'Usage: please specify <mount_point>'")
+        script.append("    echo 'Usage: <script> <mount_point> (e.g. /mnt/crypt)'")
         script.append("    exit 1")
         script.append("fi\n")
         

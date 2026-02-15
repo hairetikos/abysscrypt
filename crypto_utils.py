@@ -1,46 +1,190 @@
 #!/usr/bin/env python3
 
-import subprocess
-import re
-
 class CryptoUtils:
-    @staticmethod
-    def get_available_ciphers():
-        """Get list of known-good dm-crypt cipher strings"""
-        # Return only hardcoded dm-crypt cipher-mode-IV strings
-        # These are all valid for cryptsetup plain mode
-        return [
-            "aes-xts-plain64",
-            "aes-cbc-essiv:sha256",
-            "aes-cbc-plain",
-            "twofish-xts-plain64",
-            "twofish-cbc-plain",
-            "serpent-xts-plain64",
-            "serpent-cbc-plain",
-            "aes-twofish-xts-plain64",
-            "twofish-serpent-xts-plain64",
-            "aes-twofish-serpent-xts-plain64",
-            "camellia-xts-plain64",
-            "camellia-cbc-essiv:sha256",
-            "cast5-cbc-plain",
-            "cast6-xts-plain64",
-            "blowfish-cbc-plain"
-        ]
-
+    # Cached cipher list to avoid re-parsing /proc/crypto every time
+    _cached_ciphers = None
+    
+    # Default block size for ciphers (in bytes)
+    _DEFAULT_BLOCKSIZE = 16
+    
+    # Hardcoded block sizes for known ciphers (fallback)
+    _CIPHER_BLOCKSIZES = {
+        # 128-bit (16-byte) block ciphers
+        "aes": 16,
+        "twofish": 16,
+        "serpent": 16,
+        "camellia": 16,
+        "cast6": 16,
+        "anubis": 16,
+        # 64-bit (8-byte) block ciphers
+        "blowfish": 8,
+        "cast5": 8,
+        "des": 8,
+        "des3_ede": 8,
+        "des3ede": 8,  # Normalized form of des3_ede (underscores removed)
+    }
+    
+    # Known modes and their IV strategies
+    _KNOWN_MODES = ["xts", "cbc", "lrw", "ecb", "ctr", "ofb", "cfb"]
+    _XTS_IV = "plain64"
+    _CBC_IVS = ["essiv:sha256", "plain", "plain64"]
+    
+    @classmethod
+    def _parse_proc_crypto(cls):
+        """Parse /proc/crypto to extract cipher information with block sizes."""
+        try:
+            with open('/proc/crypto', 'r') as f:
+                content = f.read()
+        except Exception:
+            return {}, {}
+        
+        # Split into individual algorithm entries
+        entries = content.split('\n\n')
+        
+        # Track raw block ciphers (type: cipher) with their block sizes
+        raw_cipher_blocksizes = {}
+        
+        # Track skcipher entries
+        skcipher_entries = []
+        
+        for entry in entries:
+            if not entry.strip():
+                continue
+            
+            lines = entry.strip().split('\n')
+            entry_dict = {}
+            
+            for line in lines:
+                if ':' in line:
+                    key, value = line.split(':', 1)
+                    entry_dict[key.strip()] = value.strip()
+            
+            entry_type = entry_dict.get('type', '')
+            
+            # Collect raw block cipher primitives (type: cipher)
+            if entry_type == 'cipher':
+                name = entry_dict.get('name', '')
+                blocksize = entry_dict.get('blocksize', '')
+                if name and blocksize:
+                    try:
+                        raw_cipher_blocksizes[name] = int(blocksize)
+                    except ValueError:
+                        pass
+            
+            # Collect skcipher entries (already mode-combined)
+            elif entry_type == 'skcipher':
+                skcipher_entries.append(entry_dict)
+        
+        return raw_cipher_blocksizes, skcipher_entries
+    
+    @classmethod
+    def _build_cipher_strings(cls, cipher, mode, blocksize=None):
+        """Build cipher strings for a given cipher, mode, and blocksize.
+        
+        Args:
+            cipher: Base cipher name (e.g., 'aes', 'twofish')
+            mode: Mode of operation (e.g., 'xts', 'cbc')
+            blocksize: Block size in bytes (default uses _DEFAULT_BLOCKSIZE)
+            
+        Returns:
+            Set of cipher strings
+        """
+        if blocksize is None:
+            blocksize = cls._DEFAULT_BLOCKSIZE
+        
+        strings = set()
+        if mode == "xts":
+            if blocksize == 16:  # XTS requires 128-bit (16-byte) block cipher
+                strings.add(f"{cipher}-xts-{cls._XTS_IV}")
+        elif mode == "cbc":
+            for iv in cls._CBC_IVS:
+                strings.add(f"{cipher}-cbc-{iv}")
+        elif mode in cls._KNOWN_MODES:
+            strings.add(f"{cipher}-{mode}-plain64")
+        return strings
+    
+    @classmethod
+    def get_available_ciphers(cls):
+        """Get list of available dm-crypt cipher strings from /proc/crypto.
+        
+        Returns a cached list on subsequent calls to avoid re-parsing.
+        """
+        if cls._cached_ciphers is not None:
+            return list(cls._cached_ciphers)
+        
+        raw_cipher_blocksizes, skcipher_entries = cls._parse_proc_crypto()
+        
+        cipher_strings = set()
+        
+        # Process raw block ciphers to infer mode combinations
+        for cipher, blocksize in raw_cipher_blocksizes.items():
+            # Normalize cipher name
+            cipher_normalized = cipher.lower().replace('_', '')
+            
+            # Build cipher strings for common modes
+            for mode in ["xts", "cbc"]:
+                cipher_strings.update(cls._build_cipher_strings(cipher_normalized, mode, blocksize))
+        
+        # Process skcipher entries
+        for entry in skcipher_entries:
+            name = entry.get('name', '')
+            blocksize_str = entry.get('blocksize', '')
+            
+            # Try to parse blocksize
+            try:
+                blocksize = int(blocksize_str)
+            except (ValueError, TypeError):
+                blocksize = None
+            
+            # Check if this is a dm-crypt compatible cipher string
+            # Format: cipher-mode-iv
+            parts = name.split('-')
+            if len(parts) >= 2:
+                cipher = parts[0]
+                mode = parts[1] if len(parts) > 1 else None
+                
+                # Determine blocksize
+                if blocksize is None:
+                    blocksize = cls._CIPHER_BLOCKSIZES.get(cipher, cls._DEFAULT_BLOCKSIZE)
+                
+                # Build cipher strings
+                if mode:
+                    cipher_strings.update(cls._build_cipher_strings(cipher, mode, blocksize))
+        
+        # Add some well-known multi-cipher combinations (if base ciphers exist)
+        base_128bit = ["aes", "twofish", "serpent"]
+        available_base = [c for c in base_128bit if any(c in s for s in cipher_strings)]
+        
+        if len(available_base) >= 2:
+            # Add 2-cipher chains
+            if "aes" in available_base and "twofish" in available_base:
+                cipher_strings.add("aes-twofish-xts-plain64")
+            if "twofish" in available_base and "serpent" in available_base:
+                cipher_strings.add("twofish-serpent-xts-plain64")
+            
+            # Add 3-cipher chain if all three are available
+            if len(available_base) >= 3:
+                cipher_strings.add("aes-twofish-serpent-xts-plain64")
+        
+        # Sort for consistency
+        cls._cached_ciphers = sorted(cipher_strings)
+        return list(cls._cached_ciphers)
+    
     @staticmethod
     def get_available_key_sizes(cipher):
         """Get available key sizes for a cipher with proper compatibility handling"""
         # Base key sizes supported by different ciphers (in bits)
         base_cipher_key_sizes = {
-            "aes": [128, 192, 256],  # AES standard key sizes
-            "twofish": [128, 192, 256],  # Twofish key sizes
-            "serpent": [128, 192, 256],  # Serpent key sizes
-            "camellia": [128, 192, 256],  # Camellia key sizes
-            "blowfish": [128, 160, 192, 224, 256],  # Blowfish can support various sizes
-            "cast5": [128],  # CAST5 supports 128-bit
-            "cast6": [128, 160, 192, 224, 256],  # CAST6 supports multiple sizes
-            "des": [64],  # DES is 64-bit (with 56 bits actually used)
-            "des3_ede": [192],  # Triple DES uses 192 bits (168 bits effective)
+            "aes": [128, 192, 256],
+            "twofish": [128, 192, 256],
+            "serpent": [128, 192, 256],
+            "camellia": [128, 192, 256],
+            "blowfish": [128, 160, 192, 224, 256],
+            "cast5": [128],
+            "cast6": [128, 160, 192, 224, 256],
+            "des": [64],
+            "des3_ede": [192],
+            "anubis": [128],
         }
         
         # Parse the cipher string
@@ -103,46 +247,21 @@ class CryptoUtils:
             # Default fallback
             return [128, 192, 256]
 
-    @staticmethod
-    def get_available_hash_types():
-        """Get available hash types"""
-        try:
-            # Try getting hash types from cryptsetup
-            result = subprocess.run(['cryptsetup', 'benchmark'], 
-                                    capture_output=True, text=True)
-            output = result.stdout
-            
-            # Extract hash types
-            hash_section = re.search(r'#\s+Algorithm\s+|\s+Hash[\s\S]+?(?=\n\n)', output)
-            if hash_section:
-                hash_text = hash_section.group(0)
-                # Expanded pattern to catch more hash types
-                hash_types = re.findall(r'\b(sha\d+|ripemd160|whirlpool|sm3|blake2[bs]|sha3-\d+)\b', hash_text.lower())
-                if hash_types:
-                    return sorted(set(hash_types))
-            
-            # If we can't find hash types in cryptsetup, try running openssl list
-            try:
-                result = subprocess.run(['openssl', 'list', '-digest-algorithms'], 
-                                      capture_output=True, text=True)
-                if result.returncode == 0:
-                    output = result.stdout
-                    # Extract hash names, filter out non-crypto hashes
-                    hash_types = set()
-                    for line in output.split('\n'):
-                        if line and '=>' not in line and line.strip().lower() not in ['ssl3-md5', 'ssl3-sha1']:
-                            hash_name = line.strip().lower()
-                            # Only add if it's likely a crypto hash
-                            if any(x in hash_name for x in ['sha', 'md', 'ripemd', 'whirl', 'blake', 'sm3']):
-                                hash_types.add(hash_name)
-                    
-                    if hash_types:
-                        return sorted(hash_types)
-            except Exception:
-                pass
-                
-            # Default hash types if we can't extract them
-            return ["sha1", "sha256", "sha512", "ripemd160", "whirlpool", "sha3-256", "sm3", "blake2b"]
-        except Exception as e:
-            print(f"Error getting available hash types: {e}")
-            return ["sha1", "sha256", "sha512", "ripemd160", "whirlpool"]
+    @classmethod
+    def get_available_hash_types(cls):
+        """Return list of hash types known to work with cryptsetup plain mode.
+
+        These are hardcoded because cryptsetup uses its own crypto backend
+        (libgcrypt/openssl) for passphrase hashing, NOT the kernel crypto API.
+        The kernel module state is irrelevant for hash availability.
+        sha1 is deliberately excluded — it is cryptographically weak for
+        key derivation and should not be offered as an option.
+        """
+        return [
+            "sha512",
+            "sha256",
+            "sha384",
+            "sha224",
+            "whirlpool",
+            "ripemd160",
+        ]
