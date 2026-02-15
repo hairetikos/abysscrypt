@@ -1,31 +1,115 @@
 #!/usr/bin/env python3
 
-import subprocess
 import re
 
 class CryptoUtils:
+    _cached_ciphers = None
+    _cached_hash_types = None
+    _XTS_IV = "plain64"
+    _CBC_IVS = ["plain64", "essiv:sha256"]
+    _KNOWN_MODES = {"xts", "cbc", "ecb", "ctr", "cfb", "ofb"}
+
+    _KNOWN_CASCADES = [
+        ("aes-twofish-xts-plain64", ["aes", "twofish"]),
+        ("twofish-serpent-xts-plain64", ["twofish", "serpent"]),
+        ("aes-twofish-serpent-xts-plain64", ["aes", "twofish", "serpent"]),
+    ]
+
+    _FALLBACK_CIPHERS = [
+        "aes-xts-plain64",
+        "aes-cbc-essiv:sha256",
+        "twofish-xts-plain64",
+        "serpent-xts-plain64",
+        "camellia-xts-plain64",
+    ]
+
+    _FALLBACK_HASHES = [
+        "sha1", "sha256", "sha512", "ripemd160", "whirlpool",
+    ]
+
     @staticmethod
-    def get_available_ciphers():
-        """Get list of known-good dm-crypt cipher strings"""
-        # Return only hardcoded dm-crypt cipher-mode-IV strings
-        # These are all valid for cryptsetup plain mode
-        return [
-            "aes-xts-plain64",
-            "aes-cbc-essiv:sha256",
-            "aes-cbc-plain",
-            "twofish-xts-plain64",
-            "twofish-cbc-plain",
-            "serpent-xts-plain64",
-            "serpent-cbc-plain",
-            "aes-twofish-xts-plain64",
-            "twofish-serpent-xts-plain64",
-            "aes-twofish-serpent-xts-plain64",
-            "camellia-xts-plain64",
-            "camellia-cbc-essiv:sha256",
-            "cast5-cbc-plain",
-            "cast6-xts-plain64",
-            "blowfish-cbc-plain"
-        ]
+    def _parse_proc_crypto():
+        """Parse /proc/crypto and return list of algorithm entries"""
+        try:
+            with open("/proc/crypto", "r") as fh:
+                content = fh.read()
+        except OSError:
+            return []
+
+        entries = []
+        for block in content.split("\n\n"):
+            entry = {}
+            for line in block.strip().splitlines():
+                m = re.match(r"(\w+)\s*:\s*(.+)", line.strip())
+                if m:
+                    entry[m.group(1).strip()] = m.group(2).strip()
+            if entry:
+                entries.append(entry)
+        return entries
+
+    @classmethod
+    def _build_cipher_strings(cls, cipher, mode):
+        """Build dm-crypt cipher strings for a given cipher and mode"""
+        result = set()
+        if mode == "xts":
+            result.add(f"{cipher}-xts-{cls._XTS_IV}")
+        elif mode == "cbc":
+            for iv in cls._CBC_IVS:
+                result.add(f"{cipher}-cbc-{iv}")
+        elif mode in cls._KNOWN_MODES:
+            result.add(f"{cipher}-{mode}-{cls._XTS_IV}")
+        return result
+
+    @classmethod
+    def get_available_ciphers(cls):
+        """Get all available ciphers from /proc/crypto"""
+        # Check cache first
+        if cls._cached_ciphers is not None:
+            return list(cls._cached_ciphers)
+
+        entries = cls._parse_proc_crypto()
+        if not entries:
+            cls._cached_ciphers = cls._FALLBACK_CIPHERS.copy()
+            return list(cls._cached_ciphers)
+
+        raw_block_ciphers = set()
+        available_mode_wrappers = set()
+        cipher_strings = set()
+
+        # Process all entries
+        for entry in entries:
+            entry_type = entry.get("type", "")
+            name = entry.get("name", "")
+
+            # Process skcipher entries (pre-assembled cipher+mode combinations)
+            if entry_type == "skcipher":
+                # Match kernel notation: xts(aes), cbc(serpent), etc.
+                m = re.match(r"^(\w+)\((\w+)\)$", name)
+                if m:
+                    mode = m.group(1)
+                    cipher = m.group(2)
+                    if mode in cls._KNOWN_MODES:
+                        available_mode_wrappers.add(mode)
+                        cipher_strings.update(cls._build_cipher_strings(cipher, mode))
+
+            # Process cipher entries (raw block cipher primitives)
+            elif entry_type == "cipher":
+                if re.match(r"^[a-z][a-z0-9_]*$", name):
+                    raw_block_ciphers.add(name)
+
+        # Infer additional combinations from raw ciphers and available modes
+        for cipher in raw_block_ciphers:
+            for mode in available_mode_wrappers & cls._KNOWN_MODES:
+                cipher_strings.update(cls._build_cipher_strings(cipher, mode))
+
+        # Add well-known cascades if all constituent primitives exist
+        for cascade_str, required_primitives in cls._KNOWN_CASCADES:
+            if all(prim in raw_block_ciphers for prim in required_primitives):
+                cipher_strings.add(cascade_str)
+
+        result = sorted(cipher_strings)
+        cls._cached_ciphers = result.copy()
+        return result
 
     @staticmethod
     def get_available_key_sizes(cipher):
@@ -36,6 +120,7 @@ class CryptoUtils:
             "twofish": [128, 192, 256],  # Twofish key sizes
             "serpent": [128, 192, 256],  # Serpent key sizes
             "camellia": [128, 192, 256],  # Camellia key sizes
+            "anubis": [128, 160, 192, 224, 256, 288, 320],  # Anubis key sizes
             "blowfish": [128, 160, 192, 224, 256],  # Blowfish can support various sizes
             "cast5": [128],  # CAST5 supports 128-bit
             "cast6": [128, 160, 192, 224, 256],  # CAST6 supports multiple sizes
@@ -103,46 +188,33 @@ class CryptoUtils:
             # Default fallback
             return [128, 192, 256]
 
-    @staticmethod
-    def get_available_hash_types():
-        """Get available hash types"""
-        try:
-            # Try getting hash types from cryptsetup
-            result = subprocess.run(['cryptsetup', 'benchmark'], 
-                                    capture_output=True, text=True)
-            output = result.stdout
-            
-            # Extract hash types
-            hash_section = re.search(r'#\s+Algorithm\s+|\s+Hash[\s\S]+?(?=\n\n)', output)
-            if hash_section:
-                hash_text = hash_section.group(0)
-                # Expanded pattern to catch more hash types
-                hash_types = re.findall(r'\b(sha\d+|ripemd160|whirlpool|sm3|blake2[bs]|sha3-\d+)\b', hash_text.lower())
-                if hash_types:
-                    return sorted(set(hash_types))
-            
-            # If we can't find hash types in cryptsetup, try running openssl list
-            try:
-                result = subprocess.run(['openssl', 'list', '-digest-algorithms'], 
-                                      capture_output=True, text=True)
-                if result.returncode == 0:
-                    output = result.stdout
-                    # Extract hash names, filter out non-crypto hashes
-                    hash_types = set()
-                    for line in output.split('\n'):
-                        if line and '=>' not in line and line.strip().lower() not in ['ssl3-md5', 'ssl3-sha1']:
-                            hash_name = line.strip().lower()
-                            # Only add if it's likely a crypto hash
-                            if any(x in hash_name for x in ['sha', 'md', 'ripemd', 'whirl', 'blake', 'sm3']):
-                                hash_types.add(hash_name)
-                    
-                    if hash_types:
-                        return sorted(hash_types)
-            except Exception:
-                pass
-                
-            # Default hash types if we can't extract them
-            return ["sha1", "sha256", "sha512", "ripemd160", "whirlpool", "sha3-256", "sm3", "blake2b"]
-        except Exception as e:
-            print(f"Error getting available hash types: {e}")
-            return ["sha1", "sha256", "sha512", "ripemd160", "whirlpool"]
+    @classmethod
+    def get_available_hash_types(cls):
+        """Get available hash types from /proc/crypto"""
+        # Check cache first
+        if cls._cached_hash_types is not None:
+            return list(cls._cached_hash_types)
+
+        entries = cls._parse_proc_crypto()
+        if not entries:
+            cls._cached_hash_types = cls._FALLBACK_HASHES.copy()
+            return list(cls._cached_hash_types)
+
+        hash_types = set()
+        valid_prefixes = ("sha", "ripemd", "whirlpool", "blake2", "sm3", "md4", "md5", "streebog")
+
+        for entry in entries:
+            entry_type = entry.get("type", "")
+            name = entry.get("name", "")
+
+            # Only hash algorithms (shash = sync hash, ahash = async hash)
+            if entry_type in ("shash", "ahash"):
+                # Only keep simple names matching pattern (excludes hmac(sha256), cmac(aes), etc.)
+                if re.match(r"^[a-z][a-z0-9_-]*$", name):
+                    # Filter to cryptographic hashes only
+                    if name.startswith(valid_prefixes):
+                        hash_types.add(name)
+
+        result = sorted(hash_types)
+        cls._cached_hash_types = result.copy()
+        return result
