@@ -54,12 +54,12 @@ class IntroPage(QWizardPage):
         modules_text.setFont(QFont("Courier", 9))
         modules_text.setMaximumHeight(160)
         modules_text.setPlainText(
-            "sudo modprobe twofish_generic\n"
-            "sudo modprobe serpent_generic\n"
-            "sudo modprobe camellia_generic\n"
-            "sudo modprobe blowfish_generic\n"
-            "sudo modprobe cast5_generic\n"
-            "sudo modprobe cast6_generic\n"
+            "sudo modprobe twofish\n"
+            "sudo modprobe serpent\n"
+            "sudo modprobe camellia\n"
+            "sudo modprobe blowfish\n"
+            "sudo modprobe cast5\n"
+            "sudo modprobe cast6\n"
             "sudo modprobe anubis\n"
             "sudo modprobe xts\n"
             "sudo modprobe cbc"
