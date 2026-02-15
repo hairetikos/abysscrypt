@@ -4,11 +4,24 @@ class CryptoUtils:
     # Cached cipher list to avoid re-parsing /proc/crypto every time
     _cached_ciphers = None
     
+    # Default block size for ciphers (in bytes)
+    _DEFAULT_BLOCKSIZE = 16
+    
     # Hardcoded block sizes for known ciphers (fallback)
     _CIPHER_BLOCKSIZES = {
-        "aes": 16, "twofish": 16, "serpent": 16, "camellia": 16,
-        "cast6": 16, "anubis": 16,
-        "blowfish": 8, "cast5": 8, "des": 8, "des3_ede": 8,
+        # 128-bit (16-byte) block ciphers
+        "aes": 16,
+        "twofish": 16,
+        "serpent": 16,
+        "camellia": 16,
+        "cast6": 16,
+        "anubis": 16,
+        # 64-bit (8-byte) block ciphers
+        "blowfish": 8,
+        "cast5": 8,
+        "des": 8,
+        "des3_ede": 8,
+        "des3ede": 8,  # Also map normalized form
     }
     
     # Known modes and their IV strategies
@@ -65,17 +78,20 @@ class CryptoUtils:
         return raw_cipher_blocksizes, skcipher_entries
     
     @classmethod
-    def _build_cipher_strings(cls, cipher, mode, blocksize=16):
+    def _build_cipher_strings(cls, cipher, mode, blocksize=None):
         """Build cipher strings for a given cipher, mode, and blocksize.
         
         Args:
             cipher: Base cipher name (e.g., 'aes', 'twofish')
             mode: Mode of operation (e.g., 'xts', 'cbc')
-            blocksize: Block size in bytes (default 16)
+            blocksize: Block size in bytes (default uses _DEFAULT_BLOCKSIZE)
             
         Returns:
             Set of cipher strings
         """
+        if blocksize is None:
+            blocksize = cls._DEFAULT_BLOCKSIZE
+        
         strings = set()
         if mode == "xts":
             if blocksize == 16:  # XTS requires 128-bit (16-byte) block cipher
@@ -129,7 +145,7 @@ class CryptoUtils:
                 
                 # Determine blocksize
                 if blocksize is None:
-                    blocksize = cls._CIPHER_BLOCKSIZES.get(cipher, 16)
+                    blocksize = cls._CIPHER_BLOCKSIZES.get(cipher, cls._DEFAULT_BLOCKSIZE)
                 
                 # Build cipher strings
                 if mode:
