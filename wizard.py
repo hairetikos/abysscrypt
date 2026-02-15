@@ -36,6 +36,39 @@ class IntroPage(QWizardPage):
         intro_text.setWordWrap(True)
         
         layout.addWidget(intro_text)
+        
+        # Module loading guidance
+        modules_group = QGroupBox("Loading Cipher Modules")
+        modules_layout = QVBoxLayout()
+
+        modules_info = QLabel(
+            "If you need ciphers beyond AES (which is usually loaded by default), "
+            "you may need to load their kernel modules first. Run these commands "
+            "as root before proceeding, then restart abysscrypt:"
+        )
+        modules_info.setWordWrap(True)
+        modules_layout.addWidget(modules_info)
+
+        modules_text = QTextEdit()
+        modules_text.setReadOnly(True)
+        modules_text.setFont(QFont("Courier", 9))
+        modules_text.setMaximumHeight(160)
+        modules_text.setPlainText(
+            "sudo modprobe twofish_generic\n"
+            "sudo modprobe serpent_generic\n"
+            "sudo modprobe camellia_generic\n"
+            "sudo modprobe blowfish_generic\n"
+            "sudo modprobe cast5_generic\n"
+            "sudo modprobe cast6_generic\n"
+            "sudo modprobe anubis\n"
+            "sudo modprobe xts\n"
+            "sudo modprobe cbc"
+        )
+        modules_layout.addWidget(modules_text)
+
+        modules_group.setLayout(modules_layout)
+        layout.addWidget(modules_group)
+        
         self.setLayout(layout)
 
 
