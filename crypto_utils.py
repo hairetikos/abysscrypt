@@ -78,7 +78,7 @@ class CryptoUtils:
         """
         strings = set()
         if mode == "xts":
-            if blocksize == 16:  # XTS requires 128-bit block cipher
+            if blocksize == 16:  # XTS requires 128-bit (16-byte) block cipher
                 strings.add(f"{cipher}-xts-{cls._XTS_IV}")
         elif mode == "cbc":
             for iv in cls._CBC_IVS:
