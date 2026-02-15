@@ -32,7 +32,7 @@ class ScriptGenerator:
         script.append("\n# Define mount point")
         script.append("MOUNT_POINT=\"${1:-}\"")
         script.append("if [ -z \"$MOUNT_POINT\" ]; then")
-        script.append("    echo 'Usage: $0 <mount_point> (e.g. /mnt/crypt)'")
+        script.append("    echo 'Usage: <script> <mount_point> (e.g. /mnt/crypt)'")
         script.append("    exit 1")
         script.append("fi")
         script.append("mkdir -p \"$MOUNT_POINT\"")
@@ -162,7 +162,7 @@ class ScriptGenerator:
         script.append("\n# Define mount point")
         script.append("MOUNT_POINT=\"${1:-}\"")
         script.append("if [ -z \"$MOUNT_POINT\" ]; then")
-        script.append("    echo 'Usage: $0 <mount_point> (e.g. /mnt/crypt)'")
+        script.append("    echo 'Usage: <script> <mount_point> (e.g. /mnt/crypt)'")
         script.append("    exit 1")
         script.append("fi\n")
         
