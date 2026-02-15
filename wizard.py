@@ -7,7 +7,8 @@ from PyQt5.QtWidgets import (QWizard, QWizardPage, QLabel, QVBoxLayout,
                            QGroupBox, QScrollArea, QWidget, QMessageBox,
                            QTextEdit)
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
-from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtGui import QFont, QIcon, QRegExpValidator
+from PyQt5.QtCore import QRegExp
 
 from crypto_utils import CryptoUtils
 from level_config import EncryptionLevel
@@ -35,6 +36,39 @@ class IntroPage(QWizardPage):
         intro_text.setWordWrap(True)
         
         layout.addWidget(intro_text)
+        
+        # Module loading guidance
+        modules_group = QGroupBox("Loading Cipher Modules")
+        modules_layout = QVBoxLayout()
+
+        modules_info = QLabel(
+            "If you need ciphers beyond AES (which is usually loaded by default), "
+            "you may need to load their kernel modules first. Run these commands "
+            "as root before proceeding, then restart abysscrypt:"
+        )
+        modules_info.setWordWrap(True)
+        modules_layout.addWidget(modules_info)
+
+        modules_text = QTextEdit()
+        modules_text.setReadOnly(True)
+        modules_text.setFont(QFont("Courier", 9))
+        modules_text.setMaximumHeight(160)
+        modules_text.setPlainText(
+            "sudo modprobe twofish\n"
+            "sudo modprobe serpent\n"
+            "sudo modprobe camellia\n"
+            "sudo modprobe blowfish\n"
+            "sudo modprobe cast5\n"
+            "sudo modprobe cast6\n"
+            "sudo modprobe anubis\n"
+            "sudo modprobe xts\n"
+            "sudo modprobe cbc"
+        )
+        modules_layout.addWidget(modules_text)
+
+        modules_group.setLayout(modules_layout)
+        layout.addWidget(modules_group)
+        
         self.setLayout(layout)
 
 
@@ -150,10 +184,13 @@ class LevelConfigPage(QWizardPage):
         
         offset_input_layout = QHBoxLayout()
         offset_input_layout.addWidget(QLabel("Offset (sectors):"))
-        self.offset_spin = QSpinBox()
-        self.offset_spin.setRange(0, 2147483647)  # Large range
-        self.offset_spin.setValue(0)  # Default no offset
-        offset_input_layout.addWidget(self.offset_spin)
+        self.offset_edit = QLineEdit()
+        self.offset_edit.setText("0")  # Default no offset
+        # Set validator to accept only non-negative integers
+        # Empty input will be treated as 0 during conversion
+        offset_validator = QRegExpValidator(QRegExp("^[0-9]*$"))
+        self.offset_edit.setValidator(offset_validator)
+        offset_input_layout.addWidget(self.offset_edit)
         offset_layout.addLayout(offset_input_layout)
         
         offset_group.setLayout(offset_layout)
@@ -176,8 +213,8 @@ class LevelConfigPage(QWizardPage):
         self.registerField(f"level{level_num}_hash", self.hash_combo, "currentText")
         self.registerField(f"level{level_num}_use_passphrase", self.passphrase_check)
         self.registerField(f"level{level_num}_keyfile", self.keyfile_path)
-        # Register offset field for all levels
-        self.registerField(f"level{level_num}_offset", self.offset_spin)
+        # Register offset field for all levels - now using QLineEdit
+        self.registerField(f"level{level_num}_offset", self.offset_edit)
     
     def update_key_sizes(self, cipher):
         self.key_size_combo.clear()
@@ -243,7 +280,9 @@ class SummaryPage(QWizardPage):
             hash_type = self.field(f"level{i}_hash")
             use_passphrase = self.field(f"level{i}_use_passphrase")
             keyfile = self.field(f"level{i}_keyfile") if not use_passphrase else "N/A"
-            offset = self.field(f"level{i}_offset")  # Now all levels have offset
+            offset_str = self.field(f"level{i}_offset")
+            # Convert offset string to int, treating empty string as 0
+            offset = int(offset_str) if offset_str else 0
             
             auth_method = "Passphrase" if use_passphrase else f"Keyfile: {keyfile}"
             
@@ -327,13 +366,14 @@ class FinalPage(QWizardPage):
             level.use_passphrase = self.field(f"level{i}_use_passphrase")
             if not level.use_passphrase:
                 level.keyfile_path = self.field(f"level{i}_keyfile")
-            # Always get offset for all levels
-            level.offset = int(self.field(f"level{i}_offset"))
+            # Get offset as string and convert to int, treating empty string as 0
+            offset_str = self.field(f"level{i}_offset")
+            level.offset = int(offset_str) if offset_str else 0
             
             levels.append(level)
         
         # Generate scripts with prompt for container
-        script_gen = ScriptGenerator("prompt", "", levels)
+        script_gen = ScriptGenerator(levels)
         self.mount_script = script_gen.generate_mount_script()
         self.unmount_script = script_gen.generate_unmount_script()
         
@@ -346,7 +386,7 @@ class FinalPage(QWizardPage):
             try:
                 with open(file_path, 'w') as f:
                     f.write(self.mount_script)
-                os.chmod(file_path, 0o755)  # Make executable
+                os.chmod(file_path, 0o700)  # Make executable (owner only)
                 QMessageBox.information(self, "Success", f"Mount script saved to {file_path}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save mount script: {str(e)}")
@@ -357,7 +397,7 @@ class FinalPage(QWizardPage):
             try:
                 with open(file_path, 'w') as f:
                     f.write(self.unmount_script)
-                os.chmod(file_path, 0o755)  # Make executable
+                os.chmod(file_path, 0o700)  # Make executable (owner only)
                 QMessageBox.information(self, "Success", f"Unmount script saved to {file_path}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save unmount script: {str(e)}")
@@ -385,40 +425,39 @@ class AbyssCryptWizard(QWizard):
         
         # Store info about level pages
         self.level_pages = []
+        self.level_page_ids = []
         self.level_count = 3  # Default
         
         # Connect signal to update level count and create level pages
         self.level_count_page.level_count_selected.connect(self.create_level_pages)
         
-        # Add the summary and final pages
-        self.addPage(self.summary_page)
-        self.addPage(self.final_page)
+        # Add the summary and final pages and store their IDs
+        self.summary_page_id = self.addPage(self.summary_page)
+        self.final_page_id = self.addPage(self.final_page)
     
     def create_level_pages(self, count):
         """Create or recreate the level configuration pages based on the count"""
         self.level_count = count
         
         # Remove existing level pages if any
-        for page in self.level_pages:
-            page_id = self.pageIds()[self.pageIds().index(self.currentId()) + 1]
+        for page_id in self.level_page_ids:
             self.removePage(page_id)
         
-        # Clear the list of level pages
+        # Clear the lists
         self.level_pages.clear()
+        self.level_page_ids.clear()
         
         # We need to remove the summary and final pages to insert level pages before them
-        summary_id = self.pageIds()[self.pageIds().index(self.currentId()) + 1]
-        final_id = self.pageIds()[self.pageIds().index(self.currentId()) + 2]
-        
-        self.removePage(final_id)
-        self.removePage(summary_id)
+        self.removePage(self.final_page_id)
+        self.removePage(self.summary_page_id)
         
         # Create and add new level pages
         for i in range(1, count + 1):
             level_page = LevelConfigPage(i, wizard=self)  # Pass self as wizard reference
             self.level_pages.append(level_page)
-            self.addPage(level_page)
+            page_id = self.addPage(level_page)
+            self.level_page_ids.append(page_id)
         
-        # Add summary and final pages back
-        self.addPage(self.summary_page)
-        self.addPage(self.final_page)
+        # Add summary and final pages back and update their stored IDs
+        self.summary_page_id = self.addPage(self.summary_page)
+        self.final_page_id = self.addPage(self.final_page)
