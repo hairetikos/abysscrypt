@@ -21,7 +21,7 @@ class CryptoUtils:
         "cast5": 8,
         "des": 8,
         "des3_ede": 8,
-        "des3ede": 8,  # Also map normalized form
+        "des3ede": 8,  # Normalized form of des3_ede (underscores removed)
     }
     
     # Known modes and their IV strategies
